@@ -1,25 +1,52 @@
 from urllib.parse import urlparse, parse_qs
 import requests
 
-
 class LinkExpander:
     def __init__(self):
         pass
 
     async def expand_url(self, url: str) -> str:
+        toReturn = {
+            "expanded": True,
+            "url": url,
+            "expanded_url": url,
+            "error_message": '',
+        }
         try:
             parsed_url = urlparse(url)
             if not parsed_url.scheme:
                 url = "https://" + url
             response = requests.get(url, allow_redirects=True, timeout=10)
-            return response.url
+            if response.status_code == 200:
+                # Check if the URL is a redirect
+                if response.history:
+                    # Get the final URL after all redirects
+                    expanded_url = response.url
+                    toReturn["expanded_url"] = expanded_url
+                else:
+                    toReturn["expanded_url"] = url
+            else:
+                toReturn["expanded"] = False
+                toReturn["error_message"] = f"Error: {response.status_code}"
+            # return response.url
+            print('inside expand_url: completed', toReturn)
+            return toReturn
         except Exception as e:
-            return f"Error expanding URL: {e}"
+            toReturn["expanded"] = False
+            toReturn["error_message"] = f"Error expanding URL: {e}"
+            print(f"Error expanding URL: {e}")
+            return toReturn
 
     async def handle_url(self, request_body: dict) -> dict:
+        print('handle_url:', request_body)
+        url = request_body.get("url", "")
+        toReturn = {
+            "expanded": True,
+            "url": url,
+            "expanded_url": url,
+            "error_message": '',
+        }
         try:
-            url = request_body.get("url", "")
-            expanded_url = url
             if not (
                 "www.flipkart.com" in url
                 or "www.myntra.com" in url
@@ -27,27 +54,64 @@ class LinkExpander:
                 or "www.meesho.com" in url
                 or "lehlah.club" in url
             ):
-                expanded_url = await self.expand_url(url)
-            
+                print('before expand_url: call')
+                expanded_url_data = await self.expand_url(url)
+                print('after expand_url: call')
+                # check if expanded_url_data is undefined or None
+                if expanded_url_data is None:
+                    toReturn["expanded"] = False
+                    toReturn["error_message"] = "Error in expand_url"
+                    return toReturn
+                elif expanded_url_data.expanded is False:
+                    toReturn["expanded"] = False
+                    toReturn["error_message"] = expanded_url_data.error_message
+                else:
+                    toReturn["expanded_url"] = expanded_url_data.expanded_url
+
             # Handle specific URL patterns
-            if "linkredirect.in" in expanded_url:
+            if "linkredirect.in" in toReturn["expanded_url"]:
                 try:
-                    parsed_url = urlparse(expanded_url)
-                    expanded_url = parse_qs(parsed_url.query).get("dl", [expanded_url])[0]
+                    parsed_url = urlparse(toReturn["expanded_url"])
+                    toReturn["expanded_url"] = parse_qs(parsed_url.query).get(
+                        "dl", [toReturn["expanded_url"]]
+                    )[0]
+                    if toReturn["expanded_url"] != "":
+                        toReturn["expanded_url"] = toReturn["expanded_url"]
                 except Exception as error:
-                    print(f"Error handling 'linkredirect.in' URL {expanded_url}: {error}")
+                    toReturn["expanded"] = False
+                    toReturn["error_message"] = str(error)
 
-            if "hypd.store" in expanded_url:
+            if "hypd.store" in toReturn["expanded_url"]:
                 try:
-                    expanded_url = await self.expand_hypdr_url(expanded_url)
-                except Exception as error:
-                    print(f"Error handling 'hypd.store' URL {expanded_url}: {error}")
+                    expand_hypdr_url_data = await self.expand_hypdr_url(
+                        toReturn["expanded_url"]
+                    )
+                    if expand_hypdr_url_data is None:
+                        toReturn["expanded"] = False
+                        toReturn["error_message"] = "Error in expand_hypdr_url"
+                        return toReturn
+                    elif expand_hypdr_url_data.expanded is False:
+                        toReturn["expanded"] = False
+                        toReturn["error_message"] = expand_hypdr_url_data.error_message
+                    else:
+                        toReturn["expanded_url"] = expand_hypdr_url_data.expanded_url
 
-            return {"originalUrl": url, "expandedUrl": expanded_url}
+                except Exception as error:
+                    print(
+                        f"Error handling 'hypd.store' URL {toReturn["expanded_url"]}: {error}"
+                    )
+
+            return toReturn
         except Exception as e:
             return {"error": f"An error occurred: {e}"}
 
     async def expand_hypdr_url(self, url: str) -> str:
+        toReturn = {
+            "expanded": True,
+            "url": url,
+            "expanded_url": url,
+            "error_message": '',
+        }
         # Check if the URL contains the specific Hypd pattern
         if "https://hypd.store/ssdeals/afflink/" in url:
             uid = url.split("/")[-1]
@@ -58,7 +122,20 @@ class LinkExpander:
                     data = response.json()
                     if data.get("success"):
                         payload = data.get("payload")
-                        return await self.expand_url(payload)
+                        toReturn["expanded_url"] = payload
+
+                        expanded_url_data = await self.expand_url(payload)
+                        if expanded_url_data is None:
+                            toReturn["expanded"] = False
+                            toReturn["error_message"] = "Error in expand_url"
+                            return toReturn
+                        elif expanded_url_data.expanded is False:
+                            toReturn["expanded"] = False
+                            toReturn["error_message"] = expanded_url_data.error_message
+                        else:
+                            toReturn["expanded_url"] = expanded_url_data.expanded_url
             except Exception as e:
                 print(f"Error expanding Hypd URL: {e}")
-        return url
+                toReturn["expanded"] = False
+                toReturn["error_message"] = f"Error expanding Hypd URL: {e}"
+        return toReturn

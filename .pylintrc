@@ -1,0 +1,45 @@
+[MASTER]
+load-plugins=pylint_django
+
+[MESSAGES CONTROL]
+disable=
+    # Disable checks that conflict with Black:
+    line-too-long,
+    bad-continuation,
+    # Other common checks to disable:
+    missing-docstring,
+    duplicate-code,
+    too-few-public-methods,
+    too-many-ancestors,
+    too-many-instance-attributes,
+    too-many-arguments,
+    too-many-locals,
+    too-many-return-statements,
+    too-many-branches,
+    too-many-statements,
+    too-many-public-methods,
+    too-many-lines,
+
+[FORMAT]
+# Use Black's default line length:
+max-line-length=88
+
+[DESIGN]
+# Adjust these values based on your project's complexity:
+max-attributes=15
+max-args=10
+max-branches=15
+max-locals=15
+max-parents=9
+max-returns=10
+max-statements=50
+
+[TYPECHECK]
+# Django-specific settings:
+ignored-modules=django.db.models
+ignored-classes=Meta
+
+[EXCEPTIONS]
+overgeneral-exceptions=
+    BaseException,
+    Exception

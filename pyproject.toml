@@ -1,0 +1,4 @@
+[tool.black]
+line-length = 88  # Matches Black's default
+target-version = ['py39']  # Target Python 3.9
+skip-string-normalization = true  # Don't normalize string quotes
