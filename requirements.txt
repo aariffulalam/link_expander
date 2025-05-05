@@ -4,3 +4,6 @@ django
 httpx
 requests
 playwright
+sqlalchemy
+python-decouple
+pymysql

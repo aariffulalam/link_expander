@@ -57,16 +57,17 @@ class LinkExpander:
                 print('before expand_url: call')
                 expanded_url_data = await self.expand_url(url)
                 print('after expand_url: call')
+                print('expanded_url_data:', expanded_url_data)
                 # check if expanded_url_data is undefined or None
                 if expanded_url_data is None:
                     toReturn["expanded"] = False
                     toReturn["error_message"] = "Error in expand_url"
                     return toReturn
-                elif expanded_url_data.expanded is False:
+                elif expanded_url_data["expanded"] is False:
                     toReturn["expanded"] = False
-                    toReturn["error_message"] = expanded_url_data.error_message
+                    toReturn["error_message"] = expanded_url_data["error_message"]
                 else:
-                    toReturn["expanded_url"] = expanded_url_data.expanded_url
+                    toReturn["expanded_url"] = expanded_url_data["expanded_url"]
 
             # Handle specific URL patterns
             if "linkredirect.in" in toReturn["expanded_url"]:
@@ -98,7 +99,7 @@ class LinkExpander:
 
                 except Exception as error:
                     print(
-                        f"Error handling 'hypd.store' URL {toReturn["expanded_url"]}: {error}"
+                        f"Error handling 'hypd.store' URL: {error}"
                     )
 
             return toReturn

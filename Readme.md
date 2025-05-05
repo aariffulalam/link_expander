@@ -1,25 +1,27 @@
-# Link Expander
+# Link Expander API
 
-Link Expander is a FastAPI-based application that processes URLs, expands shortened links, and handles specific URL patterns like `linkredirect.in` and `hypd.store`.
+This is a FastAPI-based project for expanding shortened URLs and logging the results into a database.
+
+---
 
 ## Features
+- Expand shortened URLs using custom logic and external scrapers.
+- Log URL expansion results into a MySQL database.
+- Handle specific URL patterns like Flipkart links.
 
-- Expands shortened URLs by following redirects.
-- Handles specific URL patterns:
-  - Extracts the `dl` parameter from `linkredirect.in` URLs.
-  - Expands `hypd.store` URLs by calling the Hypd API.
-- Validates and fixes malformed URLs (e.g., adds `https://` if missing).
-- Logs errors and provides detailed feedback for debugging.
+---
 
-## Requirements
+## Prerequisites
+Before running the project, ensure you have the following installed:
+- Python 3.9 or higher
+- MySQL database
+- Docker (optional, for containerized deployment)
 
-- Python 3.8+
-- FastAPI
-- Requests
+---
 
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/link-expander.git
-   cd link-expander
+### 1. Clone the Repository
+```bash
+git clone https://github.com/your-repo/link-expander.git
+cd link-expander
