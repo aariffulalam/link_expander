@@ -7,6 +7,7 @@ from logging_config import logger  # Import the logger
 # Load environment variables from .env file
 load_dotenv()
 
+
 class SnsEmailService:
     def __init__(self):
         """
@@ -20,7 +21,7 @@ class SnsEmailService:
             aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
         )
 
-    def send_email(self, topic_arn, subject, params):
+    def send_email(self, to_email, subject, params):
         """
         Sends an email notification using AWS SNS.
 
@@ -35,11 +36,10 @@ class SnsEmailService:
 
             # Publish the email to the SNS topic
             response = self.sns_client.publish(
-                TopicArn=topic_arn,
+                TopicArn=os.getenv("SNS_LEHLAH_EXPAND_EMAIL_ARN"),
                 Subject=subject,
                 Message=message,
             )
-            print('Response >> ', response)
             logger.info(f"Email sent successfully! Message ID: {response['MessageId']}")
             return response["MessageId"]
         except ClientError as error:
