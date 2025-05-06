@@ -1,9 +1,8 @@
 fastapi
 uvicorn
 django
-httpx
 requests
 playwright
-sqlalchemy
-python-decouple
-pymysql
+boto3
+botocore
+python-dotenv

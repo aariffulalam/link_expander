@@ -147,7 +147,7 @@ cython_debug/
 
 # Additional project-specific ignores
 trash.ipynb
-postgres_data/
-google-credentials.json
-data.xml
-data.xml.gz
+
+data/
+debug.js
+debug/
