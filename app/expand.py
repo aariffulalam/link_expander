@@ -37,6 +37,7 @@ class LinkExpander:
             return toReturn
 
     async def handle_url(self, request_body: dict) -> dict:
+        print("Request body: >>>>>>>>>>>>>>>>>> ", request_body)
         url = request_body.get("url", "")
         toReturn = {
             "expanded": True,

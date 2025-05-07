@@ -2,7 +2,7 @@ from fastapi import Request
 from pydantic import BaseModel
 from app.expand import LinkExpander
 from app.pwScrapper import PWScrapper
-from SNSService import SnsEmailService  # Updated to use SnsEmailService
+from services.SNSService import SnsEmailService  # Updated to use SnsEmailService
 from logging_config import logger  # Import the logger
 
 # Initialize the LinkExpander class
