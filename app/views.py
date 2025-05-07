@@ -2,7 +2,7 @@ from fastapi import Request
 from pydantic import BaseModel
 from app.expand import LinkExpander
 from app.pwScrapper import PWScrapper
-from services.SNSService import SnsEmailService  # Updated to use SnsEmailService
+from services.sns_service import SnsEmailService  # Updated to use SnsEmailService
 from logging_config import logger  # Import the logger
 
 # Initialize the LinkExpander class
@@ -33,6 +33,7 @@ class URLViews:
             return self.handle_missing_url(toReturn)
         try:
             toReturn = await self.handle_url_expansion(url, toReturn)
+            print(toReturn,   ':LLJL::::LJLJL:::>>>>>>>>>>')
             if toReturn["expanded"] is True:
                 self.send_success_email(url, toReturn)
                 logger.warning(f"URL expansion failed for {url}")

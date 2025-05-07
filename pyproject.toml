@@ -1,4 +1,24 @@
 [tool.black]
-line-length = 88  # Matches Black's default
-target-version = ['py39']  # Target Python 3.9
-skip-string-normalization = true  # Don't normalize string quotes
+line-length = 100
+target-version = ["py39"]
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+strict = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+no_implicit_optional = true
+exclude = "(venv|migrations|tests/.*_test.py)"

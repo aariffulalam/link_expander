@@ -1,43 +1,35 @@
-import argparse
+import pytest
 import asyncio
-from app.expand import LinkExpander
+from app.views import URLViews  # Import the URLViews class
 
-async def test_bulk_urls(urls):
+# Initialize the URLViews class
+url_views = URLViews()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("url", [
+    "https://dl.flipkart.com/s/VaWLGAuuuN",
+    "https://fkrt.co/Pt8CUR",
+    "https://fkrt.it/wy!CFYNNNN"
+])
+async def test_url_status(url):
+    # Simulate a request body with the URL
+    request_body = {"url": url}
+    
+    # Call the expand_url_view function
+    response, status_code = await url_views.expand_url_view(MockRequest(request_body))
+    
+    # Assert the status code and response
+    assert status_code == 200, f"Failed: {url} returned status {status_code}"
+    assert response["expanded"], f"Failed: {url} was not expanded successfully"
+    print(f"Success: {url} expanded to {response['expanded_url']}")
+
+
+class MockRequest:
     """
-    Test the expansion of multiple URLs passed via command line using the handle_url method.
-    :param urls: List of URLs to expand.
+    A mock request class to simulate FastAPI's Request object.
     """
-    expander = LinkExpander()  # Initialize the LinkExpander class
-    results = []
-    for url in urls:
-        try:
-            # Call the handle_url method with the required dictionary format
-            expanded_url = await expander.handle_url({"url": url})
-            results.append((url, expanded_url))
-        except Exception as e:
-            results.append((url, f"Error: {str(e)}"))
+    def __init__(self, json_body):
+        self._json = json_body
 
-    # Print results
-    for original, expanded in results:
-        print(f"Original: {original}, Expanded: {expanded}")
-
-# if __name__ == "__main__":
-#     # Parse command-line arguments
-#     parser = argparse.ArgumentParser(
-#         description="Test bulk URL expansion using the handle_url method.",
-#         epilog="Example usage:\n"
-#                "  python test_bulk_urls.py https://bit.ly/3example1 https://tinyurl.com/example2\n"
-#                "  python test_bulk_urls.py https://goo.gl/example3 https://invalid-url",
-#         formatter_class=argparse.RawTextHelpFormatter  # Allows multiline examples in the help text
-#     )
-#     parser.add_argument(
-#         "urls",
-#         metavar="URL",
-#         type=str,
-#         nargs="+",
-#         help="List of URLs to test (space-separated).",
-#     )
-#     args = parser.parse_args()
-
-#     # Run the test with the provided URLs
-#     asyncio.run(test_bulk_urls(args.urls))
+    async def json(self):
+        return self._json

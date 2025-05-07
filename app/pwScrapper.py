@@ -1,13 +1,11 @@
 import asyncio
-from playwright.async_api import async_playwright
-import json
 import requests
-from logging_config import logger  # Import the logger
+from playwright.async_api import async_playwright  # Third-party import
+from logging_config import logger  # Local import
 
 
-class PWScrapper:
-
-    async def expandShortUrl(self, urls):
+class pw_scrapper:
+    async def expand_short_url(self, url: str) -> str:  # Adjust method signature
         async with async_playwright() as p:
             browser = await p.firefox.launch(
                 headless=True,
@@ -34,49 +32,51 @@ class PWScrapper:
                 permissions=["geolocation"],
             )
 
-            context = await browser.new_context()
-            logger.info("Browser context created")
-            pages = [await context.new_page() for _ in urls]
-            logger.info(f"{len(pages)} pages created for URLs")
-            tasks = [self.expand_short_url(page, url) for page, url in zip(pages, urls)]
-            logger.info("Tasks created for URL expansion")
-            expanded_urls = await asyncio.gather(*tasks)
-            logger.info("Tasks gathered and executed")
+            page = await context.new_page()
+            logger.info("Browser context and page created")
+            await page.goto(url)
+            expanded_url = page.url
+            logger.info("URL expanded using Playwright: %s -> %s", url, expanded_url)
             await browser.close()
             logger.info("Browser closed")
-            utl_to_html = dict(zip(urls, expanded_urls))
-            return utl_to_html
+            return expanded_url
 
-    async def expand_using_requests(self, urls):
+    async def expand_using_requests(self, urls: list[str]) -> dict[str, str]:
         expanded_urls = []
         for url in urls:
             try:
                 expanded_url = None
-                response = requests.get(url, allow_redirects=True)
+                response = requests.get(
+                    url, allow_redirects=True, timeout=10
+                )  # Add timeout
                 if response.history:
                     expanded_url = response.url
                 expanded_urls.append(expanded_url)
-                logger.info(f"URL expanded using requests: {url} -> {expanded_url}")
-            except Exception as e:
-                logger.exception(f"Error expanding URL using requests: {url} -> {e}")
+                logger.info("URL expanded using requests: %s -> %s", url, expanded_url)
+            except (
+                requests.exceptions.RequestException
+            ) as e:  # Narrow exception handling
+                logger.exception("Error expanding URL using requests: %s -> %s", url, e)
                 expanded_urls.append(None)
 
         utl_to_html = dict(zip(urls, expanded_urls))
-        return utl_to_html
+        return {
+            k: v for k, v in utl_to_html.items() if v is not None
+        }  # Filter None values
 
-    async def expand_urls(self, urls):
-        # First try to expand using requests and then remaining using playwright
+    async def expand_urls(self, urls: list[str]) -> dict[str, str]:
+        # Fix argument mismatch
         logger.info("Starting URL expansion using requests")
         expanded_urls = await self.expand_using_requests(urls)
-        remaining_urls = [
-            url for url, expanded_url in expanded_urls.items() if expanded_url is None
-        ]
-        logger.info(f"{len(remaining_urls)} URLs remaining for Playwright expansion")
-        remaining_expanded_urls = await self.expandShortUrl(remaining_urls)
-        expanded_urls.update(remaining_expanded_urls)
+        remaining_urls = [url for url in urls if url not in expanded_urls]
+        logger.info("%d URLs remaining for Playwright expansion", len(remaining_urls))
+        tasks = [self.expand_short_url(url) for url in remaining_urls]
+        remaining_expanded_urls = await asyncio.gather(*tasks)
+        logger.info("Tasks gathered and executed")
+        expanded_urls.update(dict(zip(remaining_urls, remaining_expanded_urls)))
         logger.info("URL expansion completed")
-        return expanded_urls
+        return expanded_urls  # Ensure return type matches dict[str, str]
 
-    def expand_urls_sync(self, urls):
+    def expand_urls_sync(self, urls: list[str]) -> dict[str, str]:
         logger.info("Starting synchronous URL expansion")
         return asyncio.run(self.expand_urls(urls))

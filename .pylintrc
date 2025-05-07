@@ -1,45 +1,26 @@
 [MASTER]
-load-plugins=pylint_django
+ignore=venv,migrations
+load-plugins=pylint_pydantic
 
 [MESSAGES CONTROL]
 disable=
-    # Disable checks that conflict with Black:
-    line-too-long,
-    bad-continuation,
-    # Other common checks to disable:
-    missing-docstring,
-    duplicate-code,
-    too-few-public-methods,
-    too-many-ancestors,
-    too-many-instance-attributes,
-    too-many-arguments,
-    too-many-locals,
-    too-many-return-statements,
-    too-many-branches,
-    too-many-statements,
-    too-many-public-methods,
-    too-many-lines,
+    C0114,  ; missing-module-docstring
+    C0115,  ; missing-class-docstring
+    C0116,  ; missing-function-docstring
+    R0903,  ; too-few-public-methods (common in Pydantic models)
+    R0801,  ; duplicate-code
+    W0511,  ; fixme
+    W0613,  ; unused-argument (FastAPI dependency injection)
+    W0621,  ; redefined-outer-name (common in tests)
 
 [FORMAT]
-# Use Black's default line length:
-max-line-length=88
+max-line-length=100
 
 [DESIGN]
-# Adjust these values based on your project's complexity:
-max-attributes=15
-max-args=10
+max-args=6
+max-locals=25
 max-branches=15
-max-locals=15
-max-parents=9
-max-returns=10
 max-statements=50
 
 [TYPECHECK]
-# Django-specific settings:
-ignored-modules=django.db.models
-ignored-classes=Meta
-
-[EXCEPTIONS]
-overgeneral-exceptions=
-    BaseException,
-    Exception
+generated-members=starlette.*,fastapi.*
