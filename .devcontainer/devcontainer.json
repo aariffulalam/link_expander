@@ -56,7 +56,7 @@
 					"fatal": "Error",
 					"refactor": "Hint",
 					"warning": "Error",
-					"info": "Information"
+					"info": "Error"
 				}
 			}
 		}
