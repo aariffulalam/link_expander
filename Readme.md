@@ -29,7 +29,7 @@ This project is configured to use a development container in Visual Studio Code.
       AWS_DEFAULT_REGION=your-region
       AWS_ACCESS_KEY_ID=your-access-key-id
       AWS_SECRET_ACCESS_KEY=your-secret-access-key
-      SNS_LEHLAH_EXPAND_EMAIL_ARN=your-sns-arn
+      SNS_LEHLAH_EXPAND_NOTIF_ARN=your-sns-arn
      ```
 4. **Install Dependencies**
    - Once inside the dev container, open a terminal in VS Code.

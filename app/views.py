@@ -1,109 +1,81 @@
-from fastapi import Request
-from pydantic import BaseModel
+from fastapi import HTTPException, Request
 from app.expand import LinkExpander
-from app.pwScrapper import PWScrapper
-from services.sns_service import SnsEmailService  # Updated to use SnsEmailService
+from app.pw_scrapper import PwScrapper
+from app.sns_service import SnsEmailService  # Updated to use SnsEmailService
 from logging_config import logger  # Import the logger
 
 # Initialize the LinkExpander class
 link_expander = LinkExpander()
 
-# Initialize the PWScrapper class
-pwscrapper = PWScrapper()
-
+# Initialize the PwScrapper class
+pwscrapper = PwScrapper()
 # Initialize the EmailService class
 email_service = SnsEmailService()  # Updated to use SnsEmailService
 
 
-class URLRequest(BaseModel):
-    url: str
-
-
 class URLViews:
-    def __init__(self):
+    def __init__(self) -> None:
         self.link_expander = link_expander
         self.email_service = email_service  # Updated to use SnsEmailService
 
-    async def expand_url_view(self, request: Request):
+    async def expand_post_view(self, request: Request) -> dict[str, str | bool]:
+        response, status_code = await self.expand_url_view(request)
+        if status_code == 200:
+            return response
+
+        raise HTTPException(status_code=status_code, detail=response)
+
+    async def expand_url_view(self, request: Request) -> tuple[dict[str, str | bool], int]:
         body = await request.json()
         url = body.get("url", "")
-        toReturn = self.initialize_response(url)
 
+        # validate the URL
         if not url:
-            return self.handle_missing_url(toReturn)
+            return {"error": "URL is required"}, 400
+
+        # validate url format
+        if not url.startswith(("http://", "https://")):
+            return {"error": "Invalid URL format"}, 400
+
         try:
-            toReturn = await self.handle_url_expansion(url, toReturn)
-            print(toReturn,   ':LLJL::::LJLJL:::>>>>>>>>>>')
-            if toReturn["expanded"] is True:
-                self.send_success_email(url, toReturn)
-                logger.warning(f"URL expansion failed for {url}")
-            await self.check_flipkart_and_unknown_patterns(url, toReturn)
+            success, url_or_error = self.link_expander.handle_url(url)
+            if not success:
+                self.send_failure_notif(url, url_or_error)
+                logger.warning("URL expansion failed for %s", url)
+                return {"error": url_or_error}, 500  # don't needed to send return here
+
+            expanded_url = url_or_error
+
+            success, expanded_url = self.check_flipkart(expanded_url)
+
+            if not success:
+                self.send_failure_notif(url, expanded_url)
+                logger.warning("URL expansion failed for %s", url)
+                return {"error": expanded_url}, 500
+
         except Exception as e:
-            toReturn = self.handle_exception(e, toReturn)
+            logger.exception("Exception in expand_url_view: %s", e)
+            return {"error": "Internal server error"}, 500
 
-        return toReturn, 200 if toReturn["expanded"] else 500
+        return {"expanded_url": expanded_url, "original_url": url}, 200
 
-    def initialize_response(self, url):
-        return {
-            "expanded": True,
-            "url": url,
-            "expanded_url": url,
-            "error_message": '',
-        }
-
-    def handle_missing_url(self, toReturn):
-        toReturn["expanded"] = False
-        toReturn["error_message"] = "URL is required"
-        logger.warning("URL is missing in the request body")
-        return toReturn, 400
-
-    async def handle_url_expansion(self, url, toReturn):
-        try:
-            response = await self.link_expander.handle_url({"url": url})
-            if response is None or not response.get("expanded", False):
-                toReturn["expanded"] = False
-                toReturn["error_message"] = response.get(
-                    "error_message", "Error in LinkExpander"
-                )
-                logger.error(f"Error in LinkExpander: {toReturn['error_message']}")
-            else:
-                toReturn["expanded_url"] = response["expanded_url"]
-                logger.info(f"URL expanded successfully: {response['expanded_url']}")
-        except Exception as e:
-            toReturn["expanded"] = False
-            toReturn["error_message"] = str(e)
-            logger.exception(f"Exception in handle_url: {e}")
-        return toReturn
-
-    def send_success_email(self, url, toReturn):
+    def send_failure_notif(self, url: str, error: str) -> None:
         try:
             email_params = {
                 "URL": url,
-                "Expanded_URL": toReturn["expanded_url"],
-                "Error": toReturn["error_message"],
+                "Error": error,
             }
             subject = "URL Expansion Failed Notification"
 
-            # Define the recipients
-            recipients = ["aarif@jetbro.in"]
+            self.email_service.send_notif(subject=subject, params=email_params)
 
-            # Send email to each recipient
-            for recipient in recipients:
-                message_id = self.email_service.send_email(
-                    to_email=recipient, subject=subject, params=email_params
-                )
-                if message_id:
-                    logger.info(
-                        f"Email sent successfully to {recipient}! Message ID: {message_id}"
-                    )
-                else:
-                    logger.error(f"Failed to send email to {recipient}.")
         except Exception as email_error:
-            logger.exception(f"Error sending email: {email_error}")
+            logger.exception("Error sending email: %s", email_error)
 
-    async def check_flipkart_and_unknown_patterns(self, url, toReturn):
+    def check_flipkart(self, expanded_url: str) -> tuple[bool, str]:
         """
-        Checks for Flipkart-specific patterns and handles cases where toReturn["expanded"] is False.
+        Checks for Flipkart-specific patterns and handles
+        cases where to_return["expanded"] is False.
         """
         flipkart_patterns = [
             "flipkart.com/s/",
@@ -112,43 +84,9 @@ class URLViews:
             "fkrt.to",
             "fkrt.co",
         ]
+        # Check if the URL matches any Flipkart-specific patterns
+        if any(pattern in expanded_url for pattern in flipkart_patterns):
+            logger.info("Flipkart pattern detected in URL: %s", expanded_url)
+            return pwscrapper.expand_url_sync(expanded_url)
 
-        try:
-            # Check if the URL matches any Flipkart-specific patterns
-            if (
-                any(
-                    pattern in toReturn["expanded_url"] for pattern in flipkart_patterns
-                )
-                or toReturn['expanded'] is False
-            ):
-                logger.info(
-                    f"Flipkart pattern detected in URL: {toReturn['expanded_url']}"
-                )
-                responseOfPWScrapper = await pwscrapper.expand_urls_sync([url])
-                if responseOfPWScrapper and len(responseOfPWScrapper) > 0:
-                    expanded = responseOfPWScrapper[0]
-                    toReturn["expanded_url"] = expanded
-                    logger.info(
-                        f"PWScrapper expanded Flipkart URL successfully: {expanded}"
-                    )
-                else:
-                    toReturn["expanded"] = False
-                    toReturn["error_message"] = "Error in PWScrapper"
-                    logger.error(f"Error in PWScrapper: {toReturn['error_message']}")
-            else:
-                # Handle unknown patterns
-                logger.warning(
-                    f"Unknown pattern detected in URL: {toReturn['expanded_url']}"
-                )
-                toReturn["expanded"] = False
-                toReturn["error_message"] = "Unknown URL pattern"
-        except Exception as e:
-            toReturn["expanded"] = False
-            toReturn["error_message"] = str(e)
-            logger.exception(f"Exception in check_flipkart_and_unknown_patterns: {e}")
-
-    def handle_exception(self, e, toReturn):
-        toReturn["expanded"] = False
-        toReturn["error_message"] = str(e)
-        logger.exception(f"Exception in expand_url_view: {e}")
-        return toReturn
+        return True, expanded_url

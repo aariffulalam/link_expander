@@ -8,6 +8,4 @@ router = APIRouter()
 url_views = URLViews()
 
 # Define URL patterns
-router.add_api_route(
-    "/expand", url_views.expand_url_view, methods=["POST"], name="expand"
-)
+router.add_api_route("/expand", url_views.expand_post_view, methods=["POST"], name="expand")

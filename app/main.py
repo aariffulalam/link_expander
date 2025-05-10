@@ -1,6 +1,6 @@
+import logging
 from fastapi import FastAPI
 from app.urls import router  # Import the router from urls.py
-import logging
 
 app = FastAPI()
 

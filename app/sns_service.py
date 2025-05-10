@@ -1,7 +1,6 @@
-import boto3
-from botocore.exceptions import ClientError
-from dotenv import load_dotenv
 import os
+import boto3
+from dotenv import load_dotenv
 from logging_config import logger  # Import the logger
 
 # Load environment variables from .env file
@@ -9,7 +8,7 @@ load_dotenv()
 
 
 class SnsEmailService:
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the SnsEmailService with an SNS client.
         """
@@ -21,7 +20,7 @@ class SnsEmailService:
             aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
         )
 
-    def send_email(self, to_email, subject, params):
+    def send_notif(self, subject: str, params: dict[str, str]) -> str:
         """
         Sends an email notification using AWS SNS.
 
@@ -36,17 +35,17 @@ class SnsEmailService:
 
             # Publish the email to the SNS topic
             response = self.sns_client.publish(
-                TopicArn=os.getenv("SNS_LEHLAH_EXPAND_EMAIL_ARN"),
+                TopicArn=os.getenv("SNS_LEHLAH_EXPAND_NOTIF_ARN"),
                 Subject=subject,
                 Message=message,
             )
-            logger.info(f"Email sent successfully! Message ID: {response['MessageId']}")
-            return response["MessageId"]
-        except ClientError as error:
-            logger.exception(f"Error sending email: {error}")
-            return None
+            logger.info("Email sent successfully! Message ID: %s", response["MessageId"])
+            return response["MessageId"] or ""
+        except Exception as error:
+            logger.exception("Error sending email: %s", error)
+            return "Error sending email."
 
-    def generate_message(self, params):
+    def generate_message(self, params: dict[str, str]) -> str:
         """
         Generates a dynamic email body based on the provided parameters.
 
@@ -55,8 +54,8 @@ class SnsEmailService:
         """
         try:
             message = "\n".join([f"{key}: {value}" for key, value in params.items()])
-            logger.info(f"Generated email body: {message}")
+            logger.info("Generated email body: %s", message)
             return message
         except Exception as error:
-            logger.exception(f"Error generating email body: {error}")
+            logger.exception("Error generating email body: %s", error)
             return "Error generating email body."
