@@ -1,4 +1,3 @@
-import asyncio
 from playwright.async_api import async_playwright  # Third-party import
 from playwright.async_api import Browser, BrowserContext  # Third-party import
 from logging_config import logger  # Local import
@@ -41,8 +40,18 @@ class PwScrapper:
 
     async def expand_short_url(self, url: str) -> tuple[bool, str]:
         try:
+            print("SCRAPPING expand_short_url start >>>>>>>>>>>>>")
+            print(self.browser, "self.browser")
+            print(self.context, "self.context")
+
+            # Ensure browser and context are initialized
             if not self.browser or not self.context:
-                raise RuntimeError("Browser or context not initialized. Call `initialize` first.")
+                logger.warning("Browser or context not initialized. Reinitializing...")
+                await self.initialize()
+                if not self.browser or not self.context:  # Double-check after initialization
+                    raise RuntimeError("Failed to initialize browser or context.")
+
+            # Create a new page
             page = await self.context.new_page()
             try:
                 await page.goto(url)
@@ -62,8 +71,13 @@ class PwScrapper:
         if self.browser:
             await self.browser.close()
 
-    def expand_url_sync(self, url: str) -> tuple[bool, str]:
+    async def expand_url_sync(self, url: str) -> tuple[bool, str]:
         logger.info("Starting synchronous URL expansion")
+        print(self.browser, "self.browser >>")
+        print(self.context, "self.context >>")
         if not self.browser or not self.context:
-            asyncio.run(self.initialize())
-        return asyncio.run(self.expand_short_url(url))
+            print("Browser or context not initialized. Initializing now...")
+            await self.initialize()
+            print("endded >>>>> Browser and context initialized.")
+        print("SCRAPPING expand_short_url start >>>>>>>>>>>>>")
+        return await self.expand_short_url(url)

@@ -14,6 +14,9 @@ COPY requirements.txt /app/requirements.txt
 # # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Playwright browsers
+RUN playwright install --with-deps
+
 # # Expose port 8000 for the FastAPI app
 # EXPOSE 8000
 

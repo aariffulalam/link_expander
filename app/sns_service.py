@@ -54,7 +54,7 @@ class SnsEmailService:
         """
         try:
             message = "\n".join([f"{key}: {value}" for key, value in params.items()])
-            logger.info("Generated email body: %s", message)
+            logger.info("Generated email body: %s", message)    
             return message
         except Exception as error:
             logger.exception("Error generating email body: %s", error)
